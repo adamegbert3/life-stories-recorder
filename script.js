@@ -390,7 +390,18 @@ window.toggleRecording = async () => {
         // START RECORDING
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+            
+            // SMART FORMAT DETECTOR
+            // iPhones support "audio/mp4", Chrome supports "audio/webm"
+            let options = { mimeType: 'audio/webm' };
+            let fileExtension = 'webm';
+
+            if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                options = { mimeType: 'audio/mp4' };
+                fileExtension = 'm4a'; // This is what iPhones want!
+            }
+            
+            mediaRecorder = new MediaRecorder(stream, options);
             audioChunks = [];
 
             mediaRecorder.ondataavailable = event => {
@@ -398,29 +409,32 @@ window.toggleRecording = async () => {
             };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioBlob = new Blob(audioChunks, { type: options.mimeType });
                 const audioUrl = URL.createObjectURL(audioBlob);
                 
                 // Auto-download logic
                 const a = document.createElement('a');
                 a.href = audioUrl;
-                // Clean filename: remove special chars, replace spaces with underscores
+                
+                // Clean filename
                 const safeName = currentQuestion.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                a.download = `${safeName}.webm`;
+                a.download = `${safeName}.${fileExtension}`; // Uses correct extension now
+                
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 
-                status.innerText = "Recording Saved to Downloads!";
+                status.innerText = "Recording Saved! Check your 'Files' app.";
             };
 
             mediaRecorder.start();
             btn.className = "record-btn stop-record";
             btn.innerText = "Stop";
             status.innerText = "Recording...";
+            
         } catch (err) {
             console.error(err);
-            alert("Microphone access denied. Please allow microphone permissions in your browser settings.");
+            alert("Microphone access denied. Please allow microphone permissions.");
         }
     } else {
         // STOP RECORDING
