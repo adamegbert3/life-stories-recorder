@@ -316,54 +316,209 @@ const categories = {
     ]
 };
 
-/* APPLICATION STATE */
+/* STATE MANAGEMENT */
 let currentCategory = null;
 let currentQuestion = null;
 let mediaRecorder;
 let audioChunks = [];
+let audioBlob = null;
+let audioUrl = null;
+let finalTranscript = "";
+
+// Load saved data
+let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+let speakerName = localStorage.getItem('speakerName') || "";
 
 const app = document.getElementById('app');
 
-/* RENDER FUNCTIONS */
+/* --- RENDER FUNCTIONS --- */
 
 function renderHome() {
-    let html = `<h1>Life Stories Recorder</h1>`;
-    // Sort keys alphabetically
+    let html = `
+        <h1>Life Stories</h1>
+        
+        <div class="speaker-input">
+            <label>Who is speaking?</label>
+            <input type="text" id="speakerField" value="${speakerName}" 
+                   placeholder="e.g. Grandma, Dad..." oninput="saveSpeaker(this.value)">
+        </div>
+
+        <div class="search-container">
+            <span class="material-icons search-icon">search</span>
+            <input type="text" id="searchBar" placeholder="Search questions..." onkeyup="handleSearch(this.value)">
+        </div>
+
+        <div id="categoryList">
+            ${favorites.length > 0 ? `<button class="btn btn-favorite" onclick="renderFavorites()">
+                <span class="material-icons">favorite</span> Your Favorites (${favorites.length})
+            </button>` : ''}
+
+            <button class="btn btn-special" onclick="renderCustomInput()">
+                <span class="material-icons">edit</span> Write Your Own
+            </button>
+            
+            <div class="divider">TOPICS</div>
+    `;
+
     Object.keys(categories).sort().forEach(cat => {
         html += `<button class="btn btn-category" onclick="selectCategory('${cat}')">${cat}</button>`;
     });
+
+    html += `</div>`; // End category list
     app.innerHTML = html;
 }
 
-function renderQuestions() {
-    let html = `<button class="btn btn-back" onclick="goBack()">← Back to Categories</button>`;
-    html += `<h1>${currentCategory}</h1>`;
+function renderFavorites() {
+    let html = `<button class="btn btn-back" onclick="goBack()">← Back to Home</button>`;
+    html += `<h1>Favorites</h1>`;
     
-    categories[currentCategory].forEach(q => {
-        // Use encodeURIComponent for safety, then replace single quotes specifically
-        const safeQ = q.replace(/'/g, "\\'");
-        html += `<button class="btn btn-question" onclick="selectQuestion('${safeQ}')">${q}</button>`;
-    });
+    if (favorites.length === 0) {
+        html += `<p style="text-align:center; color:#888;">No favorites yet. Click the heart icon next to a question to add one!</p>`;
+    } else {
+        favorites.forEach(q => {
+            html += createQuestionButton(q);
+        });
+    }
     app.innerHTML = html;
+}
+
+function renderQuestions(category) {
+    let html = `<button class="btn btn-back" onclick="goBack()">← Back to Categories</button>`;
+    html += `<h1>${category}</h1>`;
+    
+    if(categories[category]) {
+        categories[category].forEach(q => {
+            html += createQuestionButton(q);
+        });
+    }
+    app.innerHTML = html;
+}
+
+// Helper to create the question button with the Heart Icon
+function createQuestionButton(q) {
+    const isFav = favorites.includes(q);
+    const heartIcon = isFav ? "favorite" : "favorite_border";
+    const heartClass = isFav ? "heart-active" : "heart-inactive";
+    const safeQ = q.replace(/'/g, "\\'"); // Escape quotes
+
+    return `
+    <div class="question-row">
+        <button class="btn btn-question" onclick="selectQuestion('${safeQ}')">${q}</button>
+        <button class="btn-heart ${heartClass}" onclick="toggleFavorite('${safeQ}')">
+            <span class="material-icons">${heartIcon}</span>
+        </button>
+    </div>
+    `;
+}
+
+function renderCustomInput() {
+    app.innerHTML = `
+        <button class="btn btn-back" onclick="goBack()">← Back</button>
+        <h1>Custom Story</h1>
+        <div class="input-group">
+            <input type="text" id="customQ" placeholder="What's the story?" autocomplete="off">
+            <button class="btn btn-start-custom" onclick="startCustomQuestion()">Start Recording</button>
+        </div>
+    `;
 }
 
 function renderRecorder() {
     app.innerHTML = `
-        <button class="btn btn-back" onclick="goBack()">← Back to Questions</button>
+        <button class="btn btn-back" onclick="goBack()">← Back</button>
         <div class="recorder-view">
             <div class="question-title">${currentQuestion}</div>
+            
+            <div class="transcript-container">
+                <div id="transcriptText" class="transcript-text">
+                    <i>Transcript will appear here as you speak...</i>
+                </div>
+            </div>
+
             <button id="recordBtn" class="record-btn start-record" onclick="toggleRecording()">
-                Start
+                <span class="material-icons" style="font-size:32px">mic</span>
             </button>
             <div id="statusText" class="status-text">Tap to Record</div>
         </div>
     `;
 }
 
-/* NAVIGATION LOGIC */
+function renderReview() {
+    app.innerHTML = `
+        <div class="recorder-view">
+            <h2>Review Story</h2>
+            <p class="question-subtitle">${currentQuestion}</p>
+            
+            <audio controls src="${audioUrl}" class="audio-player"></audio>
+
+            <div class="review-actions">
+                <button class="btn btn-save" onclick="saveAll()">
+                    <span class="material-icons">save_alt</span> Save Audio & Text
+                </button>
+                <button class="btn btn-discard" onclick="renderRecorder()">Discard</button>
+            </div>
+            
+            <h3>Transcript Preview:</h3>
+            <textarea id="finalTranscriptBox" class="transcript-edit">${finalTranscript}</textarea>
+        </div>
+    `;
+}
+
+/* --- LOGIC --- */
+
+// 1. SAVE SPEAKER NAME
+window.saveSpeaker = (val) => {
+    speakerName = val;
+    localStorage.setItem('speakerName', val);
+}
+
+// 2. SEARCH FUNCTION
+window.handleSearch = (query) => {
+    const list = document.getElementById('categoryList');
+    if (!query) {
+        renderHome(); // Reset if empty
+        return;
+    }
+    
+    // Flatten all questions into one list
+    let allQuestions = [];
+    Object.values(categories).forEach(arr => allQuestions = [...allQuestions, ...arr]);
+    
+    // Filter
+    const matches = allQuestions.filter(q => q.toLowerCase().includes(query.toLowerCase()));
+    
+    let html = `<div class="divider">SEARCH RESULTS</div>`;
+    matches.forEach(q => {
+        html += createQuestionButton(q);
+    });
+    
+    if(matches.length === 0) html += `<p style="text-align:center">No questions found.</p>`;
+    
+    list.innerHTML = html;
+}
+
+// 3. FAVORITES LOGIC
+window.toggleFavorite = (q) => {
+    if (favorites.includes(q)) {
+        favorites = favorites.filter(item => item !== q);
+    } else {
+        favorites.push(q);
+    }
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    
+    // Refresh the view to show the new heart state
+    if (currentCategory) {
+        renderQuestions(currentCategory);
+    } else if (document.getElementById('searchBar') && document.getElementById('searchBar').value) {
+         handleSearch(document.getElementById('searchBar').value);
+    } else {
+        renderHome();
+    }
+}
+
+// NAVIGATION
 window.selectCategory = (cat) => {
     currentCategory = cat;
-    renderQuestions();
+    renderQuestions(cat);
 };
 
 window.selectQuestion = (q) => {
@@ -371,81 +526,160 @@ window.selectQuestion = (q) => {
     renderRecorder();
 };
 
+window.startCustomQuestion = () => {
+    const val = document.getElementById('customQ').value;
+    if(val) selectQuestion(val);
+}
+
 window.goBack = () => {
-    if (currentQuestion) {
-        currentQuestion = null;
-        renderQuestions();
-    } else {
-        currentCategory = null;
-        renderHome();
-    }
+    currentQuestion = null;
+    currentCategory = null;
+    renderHome();
 };
 
-/* AUDIO LOGIC */
+/* --- RECORDING & TRANSCRIPTION (SAFARI TIMING FIX) --- */
+
+// Setup Recognition Global (so we can reuse it)
+let recognition;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true; // Try continuous
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+}
+
 window.toggleRecording = async () => {
     const btn = document.getElementById('recordBtn');
     const status = document.getElementById('statusText');
+    const transcriptBox = document.getElementById('transcriptText');
 
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        // START RECORDING
+        // ============================================
+        // 1. SAFARI FIX: START RECOGNITION INSTANTLY
+        // ============================================
+        // We must call .start() BEFORE any 'await' or async code
+        if (recognition) {
+            // Reset text
+            finalTranscript = ""; 
+            transcriptBox.innerHTML = "<i>Listening...</i>";
+            
+            // Define what happens when words are spoken
+            recognition.onresult = (event) => {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + " ";
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                transcriptBox.innerHTML = `<b>${finalTranscript}</b><span style="color:#888">${interim}</span>`;
+            };
+
+            // Handle Safari cutting out
+            recognition.onend = () => {
+                // If we are still recording audio, restart recognition
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+            
+            // Handle Errors
+            recognition.onerror = (event) => {
+                console.log("Speech warning:", event.error);
+            };
+
+            // START IT NOW (Synchronously)
+            try {
+                recognition.start();
+            } catch (err) {
+                console.error("Could not start recognition:", err);
+            }
+        } else {
+             transcriptBox.innerHTML = "<i>Speech recognition not supported on this browser.</i>";
+        }
+
+        // ============================================
+        // 2. NOW WE CAN WAIT FOR THE MICROPHONE
+        // ============================================
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            // SMART FORMAT DETECTOR
-            // iPhones support "audio/mp4", Chrome supports "audio/webm"
-            let options = { mimeType: 'audio/webm' };
-            let fileExtension = 'webm';
-
-            if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                options = { mimeType: 'audio/mp4' };
-                fileExtension = 'm4a'; // This is what iPhones want!
-            }
-            
-            mediaRecorder = new MediaRecorder(stream, options);
+            // Setup Media Recorder
+            mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: options.mimeType });
-                const audioUrl = URL.createObjectURL(audioBlob);
+                // Determine file type (Safari prefers mp4)
+                let type = 'audio/webm';
+                if (MediaRecorder.isTypeSupported('audio/mp4')) type = 'audio/mp4';
                 
-                // Auto-download logic
-                const a = document.createElement('a');
-                a.href = audioUrl;
+                const audioBlob = new Blob(audioChunks, { type: type });
+                audioUrl = URL.createObjectURL(audioBlob);
                 
-                // Clean filename
-                const safeName = currentQuestion.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                a.download = `${safeName}.${fileExtension}`; // Uses correct extension now
-                
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                status.innerText = "Recording Saved! Check your 'Files' app.";
+                // Kill recognition loop
+                if (recognition) {
+                    recognition.onend = null; // Prevent restart
+                    recognition.stop();
+                }
+                renderReview();
             };
 
             mediaRecorder.start();
-            btn.className = "record-btn stop-record";
-            btn.innerText = "Stop";
+
+            // Update UI
+            btn.classList.remove('start-record');
+            btn.classList.add('stop-record');
+            btn.innerHTML = '<span class="material-icons" style="font-size:32px">stop</span>';
             status.innerText = "Recording...";
-            
+
         } catch (err) {
-            console.error(err);
-            alert("Microphone access denied. Please allow microphone permissions.");
+            alert("Microphone Error: " + err.message);
+            // If mic fails, stop recognition too
+            if (recognition) recognition.stop();
         }
+
     } else {
-        // STOP RECORDING
+        // --- STOP RECORDING ---
         mediaRecorder.stop();
-        btn.className = "record-btn start-record";
-        btn.innerText = "Start";
-        
-        // Turn off mic
+        // Stop the microphone tracks (turns off the red light)
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
 };
 
-// Initialize App
+/* --- SAVING FILES --- */
+window.saveAll = () => {
+    // 1. Generate Filename Base
+    // e.g., "Grandma_First_Job"
+    const safeName = (speakerName + " " + currentQuestion).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+    // 2. Download Audio
+    const a = document.createElement('a');
+    a.href = audioUrl;
+    a.download = `${safeName}.m4a`; // or .webm
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 3. Download Text Transcript (if exists)
+    const finalTx = document.getElementById('finalTranscriptBox').value;
+    if (finalTx.trim().length > 0) {
+        const tBlob = new Blob([`Question: ${currentQuestion}\nSpeaker: ${speakerName}\n\n${finalTx}`], {type: 'text/plain'});
+        const tUrl = URL.createObjectURL(tBlob);
+        const tA = document.createElement('a');
+        tA.href = tUrl;
+        tA.download = `${safeName}.txt`;
+        document.body.appendChild(tA);
+        tA.click();
+        document.body.removeChild(tA);
+    }
+
+    alert("Files Saved!");
+    goBack();
+}
+
+// Init
 renderHome();
