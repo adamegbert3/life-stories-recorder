@@ -1,3 +1,6 @@
+// Check if browser supports speech to text
+const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+
 /* DATA STORE */
 const categories = {
     "Childhood": [
@@ -316,6 +319,14 @@ const categories = {
     ]
 };
 
+/* CONFIGURATION: Control which categories are free here */
+const freeCategories = [
+    "General Questions"
+];
+
+// Simple flag to simulate if user has bought the pack (set to true to test unlocking)
+let isPremiumUser = false;
+
 /* STATE MANAGEMENT */
 let currentCategory = null;
 let currentQuestion = null;
@@ -331,12 +342,75 @@ let speakerName = localStorage.getItem('speakerName') || "";
 
 const app = document.getElementById('app');
 
+/* LEGAL MODAL LOGIC */
+const legalContent = {
+    privacy: `
+        <h2>Privacy Policy</h2>
+        <p><strong>Your Data Stays With You.</strong></p>
+        <p>This app operates "locally." When you record a story, the audio is processed right here on your device. We do not upload your recordings to a server.</p>
+        <p><strong>Speech Recognition:</strong> If you use the transcript feature, your browser (Chrome, Safari, etc.) handles the text conversion. This data is processed according to your browser's privacy standards.</p>
+        <p><strong>Cookies/Storage:</strong> We use your browser's local storage to remember your "Favorites" and the Speaker Name.</p>
+        <p>Contact: egb25002@byui.edu</p>
+    `,
+    terms: `
+        <h2>Terms of Service</h2>
+        <p><strong>Use at your own risk.</strong></p>
+        <p>Please download and save your stories immediately after recording. Because this app does not store data in the cloud, if you clear your browser cache or lose your phone, undownloaded recordings cannot be recovered by us.</p>
+        <p>You own all rights to the stories you record.</p>
+    `,
+    feedback: `
+        <h2>Feature Request</h2>
+        <p style="font-size:16px;">Thank you so much for using the Life Stories Recorder!</p>
+        <p>We are always trying to improve. If you have an idea or found a bug, please email us at:</p>
+        <p><strong><a href="mailto:egb25002@byui.edu" style="color:#2E5C38;">egb25002@byui.edu</a></strong></p>
+        <br>
+        <p style="font-size:12px; color:#999;">(Click the email to open your mail app)</p>
+    `
+};
+
+function showLegal(type) {
+    const modal = document.getElementById('helpModal');
+    const contentBox = modal.querySelector('.modal-content');
+    
+    // Save the original Help HTML so we can restore it later
+    if (!window.originalHelpHtml) {
+        window.originalHelpHtml = contentBox.innerHTML;
+    }
+
+    // Inject Legal Text
+    contentBox.innerHTML = `
+        <div style="text-align:left; max-height:60vh; overflow-y:auto;">
+            ${legalContent[type]}
+        </div>
+        <br>
+        <button class="btn btn-category" onclick="restoreHelp()">Close</button>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function restoreHelp() {
+    const modal = document.getElementById('helpModal');
+    // Restore the original "How to" content
+    if (window.originalHelpHtml) {
+        modal.querySelector('.modal-content').innerHTML = window.originalHelpHtml;
+    }
+    modal.style.display = 'none';
+}
+
 /* --- RENDER FUNCTIONS --- */
 
 function renderHome() {
     let html = `
-        <h1>Life Stories</h1>
-        
+        <div class="logo-area">
+            <img src="LSR_light.png" class="logo-img" alt="Life Stories Recorder">
+            <h1>Life Stories Recorder</h1>
+        </div>
+        ${!speechSupported ? `
+        <div style="background:#FFF4E5; color:#663C00; padding:10px; font-size:13px; border-radius:8px; text-align:center; margin-bottom:20px; border:1px solid #FFCC00;">
+            <strong>Tip:</strong> Open this in <b>Google Chrome</b> to use the automatic Speech-to-Text feature.
+        </div>
+        ` : ''}
         <div class="speaker-input">
             <label>Who is speaking?</label>
             <input type="text" id="speakerField" value="${speakerName}" 
@@ -344,29 +418,56 @@ function renderHome() {
         </div>
 
         <div class="search-container">
-            <span class="material-icons search-icon">search</span>
+            <svg class="search-icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             <input type="text" id="searchBar" placeholder="Search questions..." onkeyup="handleSearch(this.value)">
         </div>
 
         <div id="categoryList">
             ${favorites.length > 0 ? `<button class="btn btn-favorite" onclick="renderFavorites()">
-                <span class="material-icons">favorite</span> Your Favorites (${favorites.length})
+                <svg class="btn-icon-svg" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                Your Favorites (${favorites.length})
             </button>` : ''}
 
             <button class="btn btn-special" onclick="renderCustomInput()">
-                <span class="material-icons">edit</span> Write Your Own
+                <svg class="btn-icon-svg" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Write Your Own
             </button>
             
             <div class="divider">TOPICS</div>
     `;
 
     Object.keys(categories).sort().forEach(cat => {
-        html += `<button class="btn btn-category" onclick="selectCategory('${cat}')">${cat}</button>`;
+        const isLocked = !freeCategories.includes(cat) && !isPremiumUser;
+
+        if (isLocked) {
+            html += `
+            <button class="btn btn-category btn-locked" onclick="promptPayment('${cat}')">
+                <span>${cat}</span>
+                <svg class="lock-icon-svg" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </button>`;
+        } else {
+            html += `<button class="btn btn-category" onclick="selectCategory('${cat}')">${cat}</button>`;
+        }
     });
 
-    html += `</div>`; // End category list
+    html += `</div>`;
     app.innerHTML = html;
 }
+
+// Add these helper functions to the bottom of your script
+function promptPayment(categoryName) {
+    // This is where you would hook up Stripe, PayPal, or a payment modal
+    alert(`The "${categoryName}" category is part of the Premium Pack.\n\nPlease upgrade to access this and all other locked stories!`);
+}
+
+// function unlockAll() {
+//     // Simulate a purchase for now
+//     if(confirm("Would you like to purchase the Full Version for $4.99? (Demo)")) {
+//         isPremiumUser = true;
+//         renderHome(); // Re-render to show unlocked state
+//         alert("Thank you! All categories are now available.");
+//     }
+// }
 
 function renderFavorites() {
     let html = `<button class="btn btn-back" onclick="goBack()">← Back to Home</button>`;
@@ -397,15 +498,16 @@ function renderQuestions(category) {
 // Helper to create the question button with the Heart Icon
 function createQuestionButton(q) {
     const isFav = favorites.includes(q);
-    const heartIcon = isFav ? "favorite" : "favorite_border";
     const heartClass = isFav ? "heart-active" : "heart-inactive";
-    const safeQ = q.replace(/'/g, "\\'"); // Escape quotes
+    const safeQ = q.replace(/'/g, "\\'"); 
 
     return `
     <div class="question-row">
         <button class="btn btn-question" onclick="selectQuestion('${safeQ}')">${q}</button>
         <button class="btn-heart ${heartClass}" onclick="toggleFavorite('${safeQ}')">
-            <span class="material-icons">${heartIcon}</span>
+            <svg class="heart-svg" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
         </button>
     </div>
     `;
@@ -423,45 +525,76 @@ function renderCustomInput() {
 }
 
 function renderRecorder() {
+    // Dynamic Label Logic
+    const boxTitle = speechSupported ? "Live Transcript" : "Personal Notes";
+    const boxPlaceholder = speechSupported 
+        ? "<i>Listening... (Text will appear here if use )</i>" 
+        : "<i>Transcription not available in this browser. You can type notes here after recording.</i>";
+
     app.innerHTML = `
         <button class="btn btn-back" onclick="goBack()">← Back</button>
         <div class="recorder-view">
             <div class="question-title">${currentQuestion}</div>
             
+            <div style="text-align:left; font-weight:bold; margin-bottom:5px; color:#2E5C38;">${boxTitle}:</div>
             <div class="transcript-container">
-                <div id="transcriptText" class="transcript-text">
-                    <i>Transcript will appear here as you speak...</i>
+                <div id="transcriptText">
+                    ${boxPlaceholder}
                 </div>
             </div>
 
             <button id="recordBtn" class="record-btn start-record" onclick="toggleRecording()">
-                <span class="material-icons" style="font-size:32px">mic</span>
+                <svg class="mic-svg" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
             </button>
-            <div id="statusText" class="status-text">Tap to Record</div>
+            <div id="statusText" style="margin-top:20px; color:#999; text-transform:uppercase; font-size:12px; font-weight:bold;">Tap to Record</div>
         </div>
     `;
 }
 
 function renderReview() {
+    const boxTitle = speechSupported ? "Edit Transcript" : "Add Notes";
+
     app.innerHTML = `
         <div class="recorder-view">
             <h2>Review Story</h2>
-            <p class="question-subtitle">${currentQuestion}</p>
+            <p style="color:#666; font-style:italic; margin-bottom:20px;">${currentQuestion}</p>
             
-            <audio controls src="${audioUrl}" class="audio-player"></audio>
+            <audio controls src="${audioUrl}" style="width:100%; height:40px; margin-bottom:20px;"></audio>
 
             <div class="review-actions">
                 <button class="btn btn-save" onclick="saveAll()">
-                    <span class="material-icons">save_alt</span> Save Audio & Text
+                    <svg style="width:20px; height:20px; fill:white;" viewBox="0 0 24 24"><path d="M19 12v7H5v-8.15l-1-1V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-3zm-9 2h6v-6h3L15 4l-4 4h3v6z"/></svg>
+                    Save Story
                 </button>
-                <button class="btn btn-discard" onclick="renderRecorder()">Discard</button>
+                <button class="btn btn-discard" onclick="renderRecorder()">
+                    Discard
+                </button>
             </div>
             
-            <h3>Transcript Preview:</h3>
-            <textarea id="finalTranscriptBox" class="transcript-edit">${finalTranscript}</textarea>
+            <h3 style="text-align:left; margin-top:0;">${boxTitle}:</h3>
+            <textarea id="finalTranscriptBox" style="width:100%; height:100px; padding:10px; border:2px solid #E5E0D8; border-radius:12px; font-family:inherit; box-sizing:border-box;">${finalTranscript}</textarea>
         </div>
     `;
 }
+
+/* HELP MODAL LOGIC */
+function openHelp() {
+    document.getElementById('helpModal').style.display = 'flex';
+}
+
+function closeHelp() {
+    document.getElementById('helpModal').style.display = 'none';
+    // Remember that the user has seen the tutorial
+    localStorage.setItem('hasSeenTutorial', 'true');
+}
+
+// Check on load if we need to show the tutorial
+window.addEventListener('DOMContentLoaded', () => {
+    const hasSeen = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeen) {
+        openHelp();
+    }
+});
 
 /* --- LOGIC --- */
 
@@ -537,14 +670,15 @@ window.goBack = () => {
     renderHome();
 };
 
-/* --- RECORDING & TRANSCRIPTION (SAFARI TIMING FIX) --- */
-
-// Setup Recognition Global (so we can reuse it)
+/* --- SAFARI-OPTIMIZED RECORDING --- */
 let recognition;
+let isRecognizing = false; // Track state manually
+
+// Initialize once
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
-    recognition.continuous = true; // Try continuous
+    recognition.continuous = false; // CRITICAL FOR SAFARI
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 }
@@ -555,16 +689,13 @@ window.toggleRecording = async () => {
     const transcriptBox = document.getElementById('transcriptText');
 
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        // ============================================
-        // 1. SAFARI FIX: START RECOGNITION INSTANTLY
-        // ============================================
-        // We must call .start() BEFORE any 'await' or async code
+        // --- START RECORDING ---
+        
+        // 1. Start Speech Recognition FIRST (Synchronously)
         if (recognition) {
-            // Reset text
             finalTranscript = ""; 
             transcriptBox.innerHTML = "<i>Listening...</i>";
             
-            // Define what happens when words are spoken
             recognition.onresult = (event) => {
                 let interim = "";
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -577,75 +708,71 @@ window.toggleRecording = async () => {
                 transcriptBox.innerHTML = `<b>${finalTranscript}</b><span style="color:#888">${interim}</span>`;
             };
 
-            // Handle Safari cutting out
+            // AUTO-RESTART LOOP (The "Continuous" Hack)
             recognition.onend = () => {
-                // If we are still recording audio, restart recognition
+                isRecognizing = false;
+                // Only restart if the MediaRecorder is still running
                 if (mediaRecorder && mediaRecorder.state === "recording") {
-                    try { recognition.start(); } catch(e) {}
+                    try { 
+                        recognition.start(); 
+                        isRecognizing = true;
+                    } catch(e) { console.log("Restart ignore"); }
                 }
             };
-            
-            // Handle Errors
-            recognition.onerror = (event) => {
-                console.log("Speech warning:", event.error);
-            };
 
-            // START IT NOW (Synchronously)
+            // Start it
             try {
                 recognition.start();
+                isRecognizing = true;
             } catch (err) {
-                console.error("Could not start recognition:", err);
+                console.warn("Recognition start failed:", err);
+                // Even if this fails, we continue to audio recording
             }
-        } else {
-             transcriptBox.innerHTML = "<i>Speech recognition not supported on this browser.</i>";
         }
 
-        // ============================================
-        // 2. NOW WE CAN WAIT FOR THE MICROPHONE
-        // ============================================
+        // 2. Wait 200ms before grabbing Microphone for Audio (Prevents collision)
+        await new Promise(r => setTimeout(r, 200));
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // Setup Media Recorder
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
             mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             
             mediaRecorder.onstop = () => {
-                // Determine file type (Safari prefers mp4)
-                let type = 'audio/webm';
-                if (MediaRecorder.isTypeSupported('audio/mp4')) type = 'audio/mp4';
-                
-                const audioBlob = new Blob(audioChunks, { type: type });
+                const type = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+                audioBlob = new Blob(audioChunks, { type: type });
                 audioUrl = URL.createObjectURL(audioBlob);
                 
-                // Kill recognition loop
+                // FORCE KILL RECOGNITION
                 if (recognition) {
-                    recognition.onend = null; // Prevent restart
+                    recognition.onend = null; // Remove the restart loop
                     recognition.stop();
+                    isRecognizing = false;
                 }
                 renderReview();
             };
 
             mediaRecorder.start();
 
-            // Update UI
+            // --- UI UPDATES (THIS IS THE FIX) ---
             btn.classList.remove('start-record');
             btn.classList.add('stop-record');
-            btn.innerHTML = '<span class="material-icons" style="font-size:32px">stop</span>';
+            
+            // This line now injects the Square Stop SVG instead of the old code
+            btn.innerHTML = '<svg class="stop-svg" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>';
+            
             status.innerText = "Recording...";
 
         } catch (err) {
             alert("Microphone Error: " + err.message);
-            // If mic fails, stop recognition too
-            if (recognition) recognition.stop();
+            if(recognition) recognition.stop();
         }
 
     } else {
         // --- STOP RECORDING ---
         mediaRecorder.stop();
-        // Stop the microphone tracks (turns off the red light)
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
 };
@@ -659,25 +786,30 @@ window.saveAll = () => {
     // 2. Download Audio
     const a = document.createElement('a');
     a.href = audioUrl;
-    a.download = `${safeName}.m4a`; // or .webm
+    a.download = `${safeName}.m4a`; 
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
 
-    // 3. Download Text Transcript (if exists)
+    // 3. Download Text (Transcript/Notes)
+    // We get the content from the box the user might have edited
     const finalTx = document.getElementById('finalTranscriptBox').value;
+    
+    // Only download text if there is actually text to save
     if (finalTx.trim().length > 0) {
-        const tBlob = new Blob([`Question: ${currentQuestion}\nSpeaker: ${speakerName}\n\n${finalTx}`], {type: 'text/plain'});
-        const tUrl = URL.createObjectURL(tBlob);
-        const tA = document.createElement('a');
-        tA.href = tUrl;
-        tA.download = `${safeName}.txt`;
-        document.body.appendChild(tA);
-        tA.click();
-        document.body.removeChild(tA);
+        setTimeout(() => {
+            const tBlob = new Blob([`Question: ${currentQuestion}\nSpeaker: ${speakerName}\nDate: ${new Date().toLocaleDateString()}\n\n-- NOTES/TRANSCRIPT --\n${finalTx}`], {type: 'text/plain'});
+            const tUrl = URL.createObjectURL(tBlob);
+            const tA = document.createElement('a');
+            tA.href = tUrl;
+            tA.download = `${safeName}.txt`;
+            document.body.appendChild(tA);
+            tA.click();
+            document.body.removeChild(tA);
+        }, 100); // 100ms delay helps browsers accept the second download
     }
 
-    alert("Files Saved!");
+    alert("Story Saved!");
     goBack();
 }
 

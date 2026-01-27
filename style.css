@@ -1,122 +1,203 @@
-/* GLOBAL STYLES */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f2f2f7;
-    margin: 0;
-    color: #1d1d1f;
+/* =========================================
+   1. GLOBAL VARIABLES & THEME
+   ========================================= */
+:root {
+    /* --- Heritage Color Palette --- */
+    --primary-green: #2E5C38;   /* Deep Forest Green - Main Headers */
+    --primary-light: #4A7A56;   /* Lighter Green - Hovers */
+    --gold-accent:   #C89F57;   /* Antique Gold - Special Buttons/Focus */
+    --vintage-red:   #D64045;   /* Warm Red - Favorites/Stop Record */
+    
+    /* --- Backgrounds & Text --- */
+    --cream-bg:      #F7F5F0;   /* Paper/Cream - Main Background */
+    --pure-white:    #FFFFFF;   /* Card Background */
+    --text-dark:     #2C241B;   /* Dark Coffee - Main Text */
+    --text-muted:    #6B6259;   /* Muted Brown - Secondary Text */
+    
+    /* --- Spacing & Shapes --- */
+    --radius-card:   16px;      /* Roundness of the main card */
+    --radius-btn:    12px;      /* Roundness of buttons */
+    --shadow-soft:   0 4px 20px rgba(44, 36, 27, 0.08);
 }
 
+/* =========================================
+   2. BASE STYLES & TYPOGRAPHY
+   ========================================= */
+body {
+    /* System Fonts for clean UI (San Francisco, Segoe UI, etc.) */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--cream-bg);
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* "Book" Font Stack for Headers to give that Storybook feel */
+h1, h2, h3, h4 {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    color: var(--primary-green);
+    font-weight: 700;
+}
+
+/* =========================================
+   3. LAYOUT & CONTAINER
+   ========================================= */
 .container {
     max-width: 600px;
-    margin: 0 auto;
-    background: white;
-    min-height: 100vh;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    margin: 20px auto;
+    background: var(--pure-white);
+    min-height: 90vh;
+    padding: 30px;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
 }
 
-h1 { text-align: center; margin-bottom: 20px; color: #1d1d1f; }
-h2, h3 { text-align: center; color: #1d1d1f; }
-
-.divider {
+/* =========================================
+   4. LOGO & HEADER AREA
+   ========================================= */
+.logo-area {
     text-align: center;
-    font-size: 12px;
-    color: #86868b;
-    margin: 20px 0;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    margin-bottom: 25px;
 }
 
-/* INPUTS & SEARCH */
-.speaker-input {
-    margin-bottom: 15px;
-    background: #f5f5f7;
-    padding: 10px;
-    border-radius: 12px;
-}
-.speaker-input label {
+.logo-img {
+    width: 200px;            /* Increased from 120px to 180px */
+    height: 200px;           /* Increased from 120px to 180px */
+    border-radius: 50%;      /* Keep it circular */
+    object-fit: contain;     /* Ensures NO cropping of text */
+    background-color: transparent; /* Removes the white background box */
+    border: none;            /* Removes the green ring (let the logo be the ring) */
+    padding: 0;              /* Removes the gap so it can be full size */
+    margin: 0 auto 10px auto;
     display: block;
+    /* Optional: Adds a subtle shadow to pop it off the page */
+    filter: drop-shadow(0 8px 15px rgba(46, 92, 56, 0.2)); 
+    transition: transform 0.3s ease;
+}
+
+.logo-img:hover {
+    transform: scale(1.05);
+}
+
+h1 { 
+    font-size: 32px; 
+    margin: 0; 
+    letter-spacing: -0.5px; 
+}
+
+/* =========================================
+   5. INPUTS & SEARCH
+   ========================================= */
+/* Speaker Name Input */
+.speaker-input {
+    background: #FFF;
+    border: 2px solid #E5E0D8;
+    padding: 15px;
+    border-radius: var(--radius-btn);
+    transition: all 0.2s;
+    margin-bottom: 20px;
+}
+
+.speaker-input:focus-within {
+    border-color: var(--gold-accent);
+}
+
+.speaker-input label {
+    color: var(--text-muted);
     font-size: 12px;
-    color: #86868b;
-    margin-bottom: 5px;
     font-weight: 600;
     text-transform: uppercase;
+    display: block;
+    margin-bottom: 5px;
 }
+
 .speaker-input input {
     width: 100%;
     border: none;
-    background: transparent;
-    font-size: 17px;
-    font-weight: 500;
+    font-size: 18px;
     outline: none;
-    color: #1d1d1f;
+    color: var(--text-dark);
+    background: transparent;
 }
 
+/* Search Bar */
 .search-container {
     position: relative;
-    margin-bottom: 20px;
-    width: 100%;
-}
-
-.search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #86868b;
-    font-size: 20px;
-    pointer-events: none;
+    margin-bottom: 25px;
 }
 
 #searchBar {
     width: 100%;
-    padding: 12px 12px 12px 40px; /* Space for icon */
-    border-radius: 10px;
-    border: 1px solid #d2d2d7;
-    background: white;
+    padding: 12px 12px 12px 45px; /* Padding left leaves room for the icon */
+    border: 2px solid #E5E0D8;
+    border-radius: 30px;
+    font-size: 16px;
     box-sizing: border-box;
-    font-size: 17px;
-    -webkit-appearance: none;
+    transition: border 0.2s;
 }
 
 #searchBar:focus {
+    border-color: var(--primary-green);
     outline: none;
-    border-color: #007AFF;
-    box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
 }
 
-/* BUTTONS (These were missing!) */
+.search-icon-svg {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    fill: #999;
+}
+
+/* =========================================
+   6. BUTTONS & INTERACTIVE ELEMENTS
+   ========================================= */
+/* Base Button Style */
 .btn {
     display: block;
     width: 100%;
     padding: 16px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     border: none;
-    border-radius: 12px;
-    font-size: 17px;
-    font-weight: 500;
+    border-radius: var(--radius-btn);
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     text-align: left;
-    transition: transform 0.1s ease, background-color 0.2s;
+    transition: transform 0.1s ease;
 }
 
-.btn:active { transform: scale(0.98); }
+.btn:active { transform: scale(0.99); }
 
+/* Category Tags */
 .btn-category {
-    background-color: #007AFF; /* Blue */
-    color: white;
-    font-weight: 600;
-    text-align: center;
+    background-color: #FFFFFF;
+    color: var(--primary-green);
+    border: 1px solid #E5E0D8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.btn-category:hover { background-color: #0062cc; }
+.btn-category:hover {
+    background-color: #FDFCF9;
+    border-color: var(--primary-green);
+}
 
+/* Locked Categories */
+.btn-locked {
+    background-color: #F5F5F7;
+    color: #A0A0A5;
+    cursor: default;
+}
+
+/* Special Action Buttons (Write Own / Favorites) */
 .btn-special {
-    background-color: #5856D6; /* Purple */
+    background: var(--gold-accent);
     color: white;
     text-align: center;
-    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -124,138 +205,133 @@ h2, h3 { text-align: center; color: #1d1d1f; }
 }
 
 .btn-favorite {
-    background-color: #FF2D55; /* Pink/Red */
+    background: var(--vintage-red);
     color: white;
     text-align: center;
-    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
 }
 
+/* Generic Back Button */
 .btn-back {
-    background-color: transparent;
-    color: #007AFF;
-    text-align: left;
-    padding-left: 0;
-    font-weight: 400;
-    margin-bottom: 10px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 10px 0;
     width: auto;
 }
 
-/* QUESTION ROWS & HEARTS */
-.question-row {
+/* Icons within buttons */
+.btn-icon-svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.lock-icon-svg {
+    width: 18px;
+    height: 18px;
+    fill: #C7C7CC;
+}
+CSS
+/* --- REVIEW BUTTONS (Save & Discard) --- */
+.review-actions {
     display: flex;
-    align-items: center; /* Vertically center */
-    gap: 12px;
-    margin-bottom: 12px;
-    width: 100%;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
-.btn-question {
-    background-color: #f2f2f7;
-    color: #1d1d1f;
-    flex-grow: 1; /* Takes up all available space */
-    margin-bottom: 0; /* Remove margin since flex handles it */
-    text-align: left;
-    line-height: 1.4;
-}
-
-.btn-question:hover { background-color: #e5e5ea; }
-
-.btn-heart {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
+.btn-save {
+    background-color: var(--primary-green);
+    color: white;
+    text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    min-width: 44px; /* Easy to tap */
-    height: 44px;
+    gap: 10px;
 }
 
-.btn-heart:hover { background-color: #f2f2f7; }
-
-/* Styles for the Material Icons */
-.material-icons {
-    font-family: 'Material Icons';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 24px;
-    display: inline-block;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    direction: ltr;
+.btn-save:hover {
+    background-color: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 92, 56, 0.2);
 }
 
-.heart-active { color: #FF2D55; }
-.heart-inactive { color: #C7C7CC; }
-
-/* RECORDER VIEW */
-.recorder-view {
+.btn-discard {
+    background-color: transparent;
+    color: var(--vintage-red);
+    border: 2px solid var(--vintage-red);
+    text-align: center;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding-top: 10px;
+    justify-content: center;
+}
+
+.btn-discard:hover {
+    background-color: #FFF0F0;
+}
+
+/* =========================================
+   7. QUESTION LISTS & FAVORITES
+   ========================================= */
+.question-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #F0EBE0;
+    padding: 8px 0;
+}
+
+.btn-question {
+    background: none;
+    color: var(--text-dark);
+    flex-grow: 1;
+    text-align: left;
+    font-size: 16px;
+    padding: 10px 0;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-question:hover { color: var(--primary-green); }
+
+/* Heart Icon Toggle */
+.btn-heart {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+}
+
+.heart-svg {
+    width: 24px;
+    height: 24px;
+    transition: fill 0.2s;
+}
+
+.heart-active .heart-svg { fill: var(--vintage-red); }
+.heart-inactive .heart-svg { fill: none; stroke: #C7C7CC; stroke-width: 2; }
+
+/* =========================================
+   8. RECORDER VIEW
+   ========================================= */
+.recorder-view {
+    text-align: center;
+    padding-top: 20px;
 }
 
 .question-title {
-    font-size: 22px;
-    font-weight: 700;
-    text-align: center;
-    margin-bottom: 20px;
-    line-height: 1.3;
-}
-
-.question-subtitle {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 20px;
-    font-style: italic;
-}
-
-/* TRANSCRIPT BOX */
-.transcript-container {
-    width: 100%;
-    height: 150px;
-    background: #f9f9f9;
-    border: 1px solid #e5e5ea;
-    border-radius: 12px;
-    padding: 15px;
-    box-sizing: border-box;
-    overflow-y: auto;
+    font-size: 24px;
     margin-bottom: 30px;
+    color: var(--primary-green);
 }
 
-.transcript-text {
-    font-size: 16px;
-    line-height: 1.5;
-    color: #1d1d1f;
-}
-
-.transcript-edit {
-    width: 100%;
-    height: 100px;
-    margin-top: 10px;
-    padding: 12px;
-    border: 1px solid #d2d2d7;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 16px;
-    box-sizing: border-box;
-}
-
-/* RECORD BUTTON */
+/* Big Round Record Button */
 .record-btn {
-    width: 72px; 
-    height: 72px;
+    width: 80px; 
+    height: 80px;
     border-radius: 50%; 
     border: none;
     color: white; 
@@ -263,92 +339,118 @@ h2, h3 { text-align: center; color: #1d1d1f; }
     display: flex; 
     justify-content: center; 
     align-items: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    transition: all 0.2s;
+    margin: 0 auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
-.record-btn:active { transform: scale(0.95); }
-.start-record { background-color: #34C759; }
-.stop-record { background-color: #FF3B30; animation: pulse 1.5s infinite; }
+.start-record { background-color: var(--primary-green); }
+.stop-record { background-color: var(--vintage-red); }
 
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+.mic-svg { width: 32px; height: 32px; fill: white; }
+.stop-svg { width: 28px; height: 28px; fill: white; }
+
+/* Transcript Box */
+.transcript-container {
+    background: #FDFCF9;
+    border: 1px solid #E5E0D8;
+    border-left: 4px solid var(--gold-accent);
+    padding: 15px;
+    text-align: left;
+    margin-bottom: 30px;
+    min-height: 100px;
 }
 
-.status-text {
-    margin-top: 20px;
-    font-size: 14px;
-    color: #86868b;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* CUSTOM INPUT */
-.input-group {
+/* =========================================
+   9. MODALS & POPUPS
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(44, 36, 27, 0.7); /* Dark brown tint for heritage feel */
+    backdrop-filter: blur(5px);
+    z-index: 1000;
     display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
-    width: 100%;
-}
-
-#customQ {
-    width: 100%;
-    padding: 16px;
-    font-size: 18px;
-    border: 1px solid #d2d2d7;
-    border-radius: 12px;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
     box-sizing: border-box;
 }
 
-#customQ:focus {
-    outline: none;
-    border-color: #007AFF;
-    box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
-}
-
-.btn-start-custom {
-    background-color: #34C759;
-    color: white;
-    text-align: center;
-    justify-content: center;
-    font-weight: 600;
-}
-
-/* AUDIO PLAYER */
-.audio-player {
+.modal-content {
+    background: var(--pure-white);
     width: 100%;
-    margin: 20px 0;
-    outline: none;
-    height: 40px;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    border-top: 6px solid var(--primary-green);
+    animation: slideUp 0.3s ease-out;
+    text-align: center;
 }
 
-/* REVIEW ACTIONS */
-.review-actions {
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Tutorial Steps inside Modal */
+.step-list { margin: 20px 0; text-align: left; }
+.step-item { display: flex; gap: 15px; margin-bottom: 20px; }
+.step-icon { 
+    background: #E8F0EA; 
+    color: var(--primary-green); 
+    padding: 10px; 
+    border-radius: 12px; 
+    height: 24px; 
+    width: 24px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+/* =========================================
+   10. FOOTER
+   ========================================= */
+.app-footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 40px;
+    border-top: 1px solid #E5E0D8;
+}
+
+.footer-links {
+    margin-top: 15px;
     display: flex;
+    justify-content: center;
     gap: 10px;
-    margin-bottom: 20px;
-    width: 100%;
-}
-
-.btn-save {
-    background-color: #007AFF;
-    color: white;
-    display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex: 1; /* Equal width */
-    text-align: center;
 }
 
-.btn-discard {
-    background-color: transparent;
-    color: #FF3B30;
-    flex: 1; /* Equal width */
+.footer-links button {
+    background: none;
+    border: none;
+    color: var(--primary-green);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px;
+    font-family: inherit;
+}
+
+.footer-links button:hover {
+    text-decoration: underline;
+    color: var(--gold-accent);
+}
+
+.divider {
     text-align: center;
-    border: 1px solid #FF3B30;
+    font-size: 11px;
+    color: var(--gold-accent);
+    letter-spacing: 2px;
+    font-weight: bold;
+    margin: 30px 0 15px 0;
+    text-transform: uppercase;
 }
