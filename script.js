@@ -528,7 +528,7 @@ function renderRecorder() {
     // Dynamic Label Logic
     const boxTitle = speechSupported ? "Live Transcript" : "Personal Notes";
     const boxPlaceholder = speechSupported 
-        ? "<i>Listening... (Text will appear here if use )</i>" 
+        ? "<i>Listening... (Text will appear here if using anything other than Safari. Safari doesn't support Speech Recognition.)</i>" 
         : "<i>Transcription not available in this browser. You can type notes here after recording.</i>";
 
     app.innerHTML = `
