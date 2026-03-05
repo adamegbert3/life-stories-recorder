@@ -325,7 +325,7 @@ const freeCategories = [
 ];
 
 // Simple flag to simulate if user has bought the pack (set to true to test unlocking)
-let isPremiumUser = false;
+let isPremiumUser = true;
 
 /* STATE MANAGEMENT */
 let currentCategory = null;
